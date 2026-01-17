@@ -3,6 +3,7 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import { CameraFeed } from '@/components/detection/CameraFeed';
 import { ImageUploader } from '@/components/detection/ImageUploader';
 import { DetectionResults } from '@/components/detection/DetectionResults';
+import { AIBoardAnalyzer } from '@/components/detection/AIBoardAnalyzer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Camera, Upload } from 'lucide-react';
 import { mockDefects } from '@/services/mockData';
@@ -47,9 +48,9 @@ export default function Detection() {
       title="Defect Detection" 
       subtitle="Real-time PCB analysis and defect identification"
     >
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Input Section */}
-        <div>
+        <div className="lg:col-span-1">
           <Tabs defaultValue="camera" className="space-y-4">
             <TabsList className="grid w-full grid-cols-2 bg-muted">
               <TabsTrigger value="camera" className="gap-2">
@@ -81,10 +82,19 @@ export default function Detection() {
         </div>
 
         {/* Results Section */}
-        <div>
+        <div className="lg:col-span-1">
           <DetectionResults 
             defects={detectedDefects} 
             isProcessing={isProcessing}
+          />
+        </div>
+
+        {/* AI Chat Section */}
+        <div className="lg:col-span-1">
+          <AIBoardAnalyzer 
+            defects={detectedDefects}
+            isProcessing={isProcessing}
+            imageUrl={selectedImage}
           />
         </div>
       </div>

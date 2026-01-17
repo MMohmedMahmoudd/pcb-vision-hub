@@ -12,14 +12,45 @@ interface CameraFeedProps {
 export function CameraFeed({ isActive, onToggle, onCapture }: CameraFeedProps) {
   const [fps, setFps] = useState(30);
   const [isScanning, setIsScanning] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const scanLineRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (isActive) {
+      // Request camera access
+      navigator.mediaDevices
+        .getUserMedia({ video: { facingMode: 'user' } })
+        .then((stream) => {
+          streamRef.current = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+          setCameraError(null);
+        })
+        .catch((error) => {
+          setCameraError(
+            error.name === 'NotAllowedError'
+              ? 'Camera permission denied'
+              : error.name === 'NotFoundError'
+              ? 'No camera found'
+              : 'Failed to access camera'
+          );
+        });
+
       const interval = setInterval(() => {
         setFps(28 + Math.floor(Math.random() * 5));
       }, 1000);
-      return () => clearInterval(interval);
+
+      return () => {
+        clearInterval(interval);
+        // Stop camera stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach((track) => track.stop());
+          streamRef.current = null;
+        }
+      };
     }
   }, [isActive]);
 
@@ -37,54 +68,63 @@ export function CameraFeed({ isActive, onToggle, onCapture }: CameraFeedProps) {
       <div className="relative h-[400px] bg-muted/50">
         {isActive ? (
           <>
-            {/* Simulated camera feed with grid overlay */}
-            <div className="absolute inset-0 bg-gradient-to-br from-muted/30 to-muted/60">
-              {/* Grid overlay */}
-              <div 
-                className="absolute inset-0 opacity-30"
-                style={{
-                  backgroundImage: `
-                    linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px),
-                    linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)
-                  `,
-                  backgroundSize: '40px 40px'
-                }}
-              />
-              
-              {/* Corner markers */}
-              <div className="absolute top-4 left-4 w-12 h-12 border-l-2 border-t-2 border-primary" />
-              <div className="absolute top-4 right-4 w-12 h-12 border-r-2 border-t-2 border-primary" />
-              <div className="absolute bottom-4 left-4 w-12 h-12 border-l-2 border-b-2 border-primary" />
-              <div className="absolute bottom-4 right-4 w-12 h-12 border-r-2 border-b-2 border-primary" />
-
-              {/* Scanning line animation */}
-              {isScanning && (
-                <div 
-                  ref={scanLineRef}
-                  className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-scan"
+            {/* Actual video feed or error message */}
+            {cameraError ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+                <div className="text-center text-destructive">
+                  <CameraOff className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                  <p className="font-medium">{cameraError}</p>
+                  <p className="text-sm mt-2">Please allow camera access and try again</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Video element */}
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
                 />
-              )}
+                
+                {/* Grid overlay */}
+                <div 
+                  className="absolute inset-0 opacity-30 pointer-events-none"
+                  style={{
+                    backgroundImage: `
+                      linear-gradient(to right, hsl(var(--primary) / 0.3) 1px, transparent 1px),
+                      linear-gradient(to bottom, hsl(var(--primary) / 0.3) 1px, transparent 1px)
+                    `,
+                    backgroundSize: '40px 40px'
+                  }}
+                />
+                
+                {/* Corner markers */}
+                <div className="absolute top-4 left-4 w-12 h-12 border-l-2 border-t-2 border-primary pointer-events-none" />
+                <div className="absolute top-4 right-4 w-12 h-12 border-r-2 border-t-2 border-primary pointer-events-none" />
+                <div className="absolute bottom-4 left-4 w-12 h-12 border-l-2 border-b-2 border-primary pointer-events-none" />
+                <div className="absolute bottom-4 right-4 w-12 h-12 border-r-2 border-b-2 border-primary pointer-events-none" />
 
-              {/* Center crosshair */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="relative">
-                  <div className="absolute -top-6 left-1/2 w-px h-4 bg-primary/50" />
-                  <div className="absolute -bottom-6 left-1/2 w-px h-4 bg-primary/50" />
-                  <div className="absolute -left-6 top-1/2 h-px w-4 bg-primary/50" />
-                  <div className="absolute -right-6 top-1/2 h-px w-4 bg-primary/50" />
-                  <div className="h-3 w-3 rounded-full border-2 border-primary bg-primary/20" />
-                </div>
-              </div>
+                {/* Scanning line animation */}
+                {isScanning && (
+                  <div 
+                    ref={scanLineRef}
+                    className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-scan pointer-events-none"
+                  />
+                )}
 
-              {/* Placeholder PCB image area */}
-              <div className="absolute inset-8 flex items-center justify-center">
-                <div className="text-center text-muted-foreground">
-                  <Camera className="h-16 w-16 mx-auto mb-4 opacity-30" />
-                  <p className="font-mono text-sm">Camera Feed Active</p>
-                  <p className="text-xs mt-1">Position PCB in frame</p>
+                {/* Center crosshair */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                  <div className="relative">
+                    <div className="absolute -top-6 left-1/2 w-px h-4 bg-primary/50" />
+                    <div className="absolute -bottom-6 left-1/2 w-px h-4 bg-primary/50" />
+                    <div className="absolute -left-6 top-1/2 h-px w-4 bg-primary/50" />
+                    <div className="absolute -right-6 top-1/2 h-px w-4 bg-primary/50" />
+                    <div className="h-3 w-3 rounded-full border-2 border-primary bg-primary/20" />
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {/* Status overlays */}
             <div className="absolute top-4 left-4 flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-1.5">
