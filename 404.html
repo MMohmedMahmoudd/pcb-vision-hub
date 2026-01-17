@@ -7,9 +7,11 @@
     <title>PCB Vision Hub</title>
     <script>
       // Redirect 404 to index.html for client-side routing
-      sessionStorage.redirect = location.href;
+      // Save the full path and redirect to index.html
+      const path = location.pathname.replace(/^\/pcb-vision-hub/, '') || '/';
+      sessionStorage.redirect = path;
     </script>
-    <meta http-equiv="refresh" content="0;url=/pcb-vision-hub/" />
+    <meta http-equiv="refresh" content="0;url=/pcb-vision-hub/?" />
   </head>
   <body></body>
 </html>
