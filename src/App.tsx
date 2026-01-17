@@ -17,7 +17,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter basename="/pcb-vision-hub">
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/detection" element={<Detection />} />
